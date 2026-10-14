@@ -1,0 +1,38 @@
+(()=>{
+  const cases=[
+    {n:'06',title:'Metro Smart-Card Transaction Audit',summary:'A transit-ledger repair task that reconstructs journeys and fares from noisy tap streams, corrections and missing events.',tags:['C','event replay','fare rules','temporal state'],problem:'The system ingests card taps and correction events, then reconstructs journeys and computes charges. The difficult part is preserving exact pairing, service-day and fare-cap semantics when events arrive out of order or earlier records are corrected.',why:['Missing entry or exit taps change how later events must be interpreted','Corrections can invalidate an already paired journey','Service-day boundaries differ from simple calendar-day grouping','Concession and fare-cap rules interact with journey reconstruction'],measures:['Deterministic event replay','Correct tap pairing under corrections','Fare-cap and concession handling','Stable totals across equivalent histories'],failure:'A plausible repair processes each row once in timestamp order. It passes ordinary trips but fails when a correction changes an earlier tap and downstream journey state must be rebuilt.',flow:['normalise taps','apply corrections','replay state','pair journeys','compute fares','cap totals']},
+    {n:'07',title:'Emergency Dispatch SLA Reconstruction',summary:'A dispatch-data evaluation that rebuilds call timelines and SLA status from corrected records, midnight rollovers and status precedence rules.',tags:['Python','corrections','time rollover','SLA'],problem:'Operational dispatch feeds contain revisions, duplicated identifiers and timestamps that cross midnight. The task is to reconstruct the final authoritative timeline before computing response-time and SLA outcomes.',why:['Later correction records can replace earlier field values','Clock times around midnight cannot be compared as plain strings','Different terminal statuses have different precedence','SLA classification depends on the reconstructed event sequence, not one row'],measures:['Correction replay','Time normalisation','Status precedence','Exact SLA rollups'],failure:'A shallow implementation calculates SLA metrics directly from the latest-looking row. It silently misclassifies calls whose corrections alter timestamps or whose sequence crosses midnight.',flow:['ingest records','resolve revisions','normalise time','rebuild call','classify SLA','roll up']},
+    {n:'08',title:'Fish Market Settlement Reconciliation',summary:'A settlement engine with shared allocations, crate returns, cancellations and accounting rules that must reconcile exactly.',tags:['Python','allocation','accounting','reconciliation'],problem:'Multiple market transactions share inventory and crate-return constraints. Corrections and cancellations change the quantities that should participate in allocation, so financial totals must be recomputed from authoritative state.',why:['Shared quantities require deterministic proportional allocation','Crate returns are capped by eligible delivered inventory','Cancellations remove earlier contributions from downstream totals','Rounding and settlement order can create reconciliation drift'],measures:['Allocation correctness','Return caps','Cancellation replay','Financial reconciliation'],failure:'A repair that adjusts only the corrected transaction leaves stale shared allocations in neighbouring rows, producing totals that look reasonable but no longer reconcile globally.',flow:['resolve trades','allocate shared stock','apply return caps','replay cancellations','settle accounts','reconcile']},
+    {n:'09',title:'School Transport Ledger Reconstruction',summary:'A messy school-transport ledger task involving corrected records, refunds, concessions and deterministic final balances.',tags:['Python','ledger','refunds','data cleaning'],problem:'The input combines imperfect identifiers, revised entries, concession rules and refunds. Correct output requires identifying the authoritative record history and applying the financial rules in the right order.',why:['Dirty identifiers can refer to the same student or pass','Corrections must supersede earlier values rather than add to them','Refund eligibility depends on the final reconstructed state','Fallback calculations and concessions can interact'],measures:['Identity normalisation','Revision handling','Refund logic','Deterministic balances'],failure:'A local row-by-row fix double-counts superseded entries or applies refunds before the final concession amount is known, causing subtle balance errors.',flow:['normalise identity','resolve corrections','apply concession','compute charge','apply refund','final ledger']},
+    {n:'10',title:'District Court Causelist Reconstruction',summary:'A legal-roster formatting evaluation that combines master data, aliases, corrections, cancellations and natural ordering.',tags:['Python','master data','ordering','record replay'],problem:'The system has to reconstruct a final daily causelist from event records and authoritative sidecar data. Cases can be renamed, corrected or cancelled, and the final ordering follows domain-specific natural-sort rules.',why:['Aliases must resolve against authoritative master data','Correction events can change display fields and ordering keys','Cancelled matters must disappear without corrupting neighbouring entries','Human-facing case numbers require natural rather than lexical sorting'],measures:['Master-data joins','Correction and cancellation replay','Alias handling','Natural ordering'],failure:'A simple formatter sorts the raw rows and removes cancelled items. It breaks when an alias resolves to a different canonical matter or a correction changes a field that participates in ordering.',flow:['load master data','resolve aliases','replay changes','remove cancellations','natural sort','render list']}
+  ];
+
+  const modal=document.getElementById('modal');
+  const casebox=document.getElementById('case');
+  if(!modal||!casebox) return;
+
+  function openSecondary(x){
+    casebox.innerHTML=`<article class="case"><p class="k">Case study ${x.n}</p><h2>${x.title}</h2><p class="summary">${x.summary}</p><div class="tags">${x.tags.map(t=>`<span>${t}</span>`).join('')}</div><div class="casegrid"><section class="block wide"><h3>Engineering problem</h3><p>${x.problem}</p></section><section class="block"><h3>Why shallow repairs fail</h3><ul>${x.why.map(v=>`<li>${v}</li>`).join('')}</ul></section><section class="block"><h3>What the evaluator measures</h3><ul>${x.measures.map(v=>`<li>${v}</li>`).join('')}</ul></section><section class="block wide"><h3>Representative failure mode</h3><p>${x.failure}</p></section><section class="block wide"><h3>Capability chain</h3><div class="flow">${x.flow.map((v,i)=>`${i?'<i>→</i>':''}<span>${v}</span>`).join('')}</div></section></div></article>`;
+    modal.showModal();
+  }
+
+  const cards=[...document.querySelectorAll('#extras .mini')];
+  cards.forEach((card,i)=>{
+    const data=cases[i];
+    if(!data) return;
+    card.tabIndex=0;
+    card.setAttribute('role','button');
+    card.setAttribute('aria-label','Open case study '+data.n+': '+data.title);
+    card.style.cursor='pointer';
+    if(!card.querySelector('.mini-open')){
+      const arrow=document.createElement('span');
+      arrow.className='mini-open';
+      arrow.textContent='↗';
+      arrow.style.cssText='position:absolute;right:16px;top:14px;color:#8aa0b8;font-size:16px';
+      card.style.position='relative';
+      card.appendChild(arrow);
+    }
+    card.addEventListener('click',()=>openSecondary(data));
+    card.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openSecondary(data)}});
+  });
+})();
