@@ -1,0 +1,43 @@
+name: Add profile portrait
+
+on:
+  push:
+    paths:
+      - '.github/workflows/add-profile.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-profile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add portrait to About section
+        shell: python
+        run: |
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_css = ".about{border:1px solid var(--line);border-radius:24px;padding:48px;display:grid;grid-template-columns:.75fr 1.25fr;gap:65px;background:linear-gradient(135deg,#101722,#0d1118)}.about h2{font-size:36px;letter-spacing:-.04em}.about p{color:#a1adbd}.links{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--accent);margin-top:28px}"
+          new_css = ".about{border:1px solid var(--line);border-radius:24px;padding:48px;display:grid;grid-template-columns:.9fr 1.1fr;gap:58px;background:linear-gradient(135deg,#101722,#0d1118);align-items:center}.about h2{font-size:36px;letter-spacing:-.04em}.about p{color:#a1adbd}.about-profile{display:grid;gap:20px}.portrait-wrap{max-width:390px;padding:10px;border:1px solid #2a374a;border-radius:24px;background:linear-gradient(180deg,#141b27,#0c1118);box-shadow:0 24px 65px rgba(0,0,0,.32)}.portrait{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;object-position:center top;border-radius:17px}.links{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--accent);margin-top:28px}"
+          if old_css in s:
+              s = s.replace(old_css, new_css, 1)
+
+          old_about = '<section id="about" class="shell section"><div class="about"><div><p class="eyebrow">About</p><h2>Katadi Suvarna Vasanth Raidu</h2></div><div><p>I work on evaluation problems for advanced coding and reasoning agents. My focus is realistic software-engineering environments, scientific computing, robust verification, and understanding why capable models fail on long-horizon tasks.</p><p>I enjoy problems where correctness is not visible from one output: state has to survive replay, numerical methods have to stay stable, compilers have to preserve meaning, and evaluation pipelines have to avoid leakage.</p><div class="links mono"><a href="mailto:vasanthkatadi225@gmail.com">vasanthkatadi225@gmail.com ↗</a><a href="https://github.com/vasanthkatadi" target="_blank" rel="noreferrer">GitHub ↗</a></div></div></div></section>'
+          new_about = '<section id="about" class="shell section"><div class="about"><div class="about-profile"><div><p class="eyebrow">About</p><h2>Katadi Suvarna Vasanth Raidu</h2></div><div class="portrait-wrap"><img class="portrait" src="profile-photo.webp" alt="Katadi Suvarna Vasanth Raidu" loading="lazy"></div></div><div><p>I work on evaluation problems for advanced coding and reasoning agents. My focus is realistic software-engineering environments, scientific computing, robust verification, and understanding why capable models fail on long-horizon tasks.</p><p>I enjoy problems where correctness is not visible from one output: state has to survive replay, numerical methods have to stay stable, compilers have to preserve meaning, and evaluation pipelines have to avoid leakage.</p><p>This portfolio highlights sanitised case studies across systems engineering, numerical computing, machine learning evaluation and stateful data processing.</p><div class="links mono"><a href="mailto:vasanthkatadi225@gmail.com">vasanthkatadi225@gmail.com ↗</a><a href="https://github.com/vasanthkatadi" target="_blank" rel="noreferrer">GitHub ↗</a></div></div></div></section>'
+          if old_about in s:
+              s = s.replace(old_about, new_about, 1)
+          else:
+              raise SystemExit('About block not found; no changes made')
+
+          p.write_text(s, encoding='utf-8')
+      - name: Commit updated page
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Show profile portrait on portfolio" || exit 0
+          git push
